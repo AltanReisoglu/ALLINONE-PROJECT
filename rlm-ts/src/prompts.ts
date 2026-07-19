@@ -7,6 +7,7 @@ The JavaScript REPL environment provides:
 2. \`llm_query(prompt)\` - async function to query a sub-LLM (handles ~500K chars). You MUST use await.
 3. \`console.log()\` - to view outputs
 4. \`state\` - an object to store variables you want to persist across code blocks (e.g. \`state.answers = []\`)
+5. \`blackboard\` - a shared object to store global facts, hypotheses, and knowledge discovered by you or subagents (e.g. \`blackboard.suspects = ['John']\`)
 
 Strategy for long contexts:
 - Chunk the context into manageable pieces
