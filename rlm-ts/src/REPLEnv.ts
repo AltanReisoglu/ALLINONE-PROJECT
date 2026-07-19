@@ -3,10 +3,12 @@
  */
 export class REPLEnv {
     public state: Record<string, any>;
+    public blackboard: Record<string, any>;
     private llmQueryFn: (prompt: string) => Promise<string>;
 
     constructor(llmQueryFn: (prompt: string) => Promise<string>, context: any) {
         this.state = { context };
+        this.blackboard = {};
         this.llmQueryFn = llmQueryFn;
     }
 
@@ -27,10 +29,10 @@ export class REPLEnv {
             // Using AsyncFunction to evaluate code and support top-level await 
             const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
             
-            // Function signature: async function(context, llm_query, console, state) { ... }
-            const func = new AsyncFunction('context', 'llm_query', 'console', 'state', code);
+            // Function signature: async function(context, llm_query, console, state, blackboard) { ... }
+            const func = new AsyncFunction('context', 'llm_query', 'console', 'state', 'blackboard', code);
             
-            await func(this.state.context, this.llmQueryFn, customConsole, this.state);
+            await func(this.state.context, this.llmQueryFn, customConsole, this.state, this.blackboard);
             return output ? output.trim() : "(no output)";
         } catch (e: any) {
             return `Error: ${e.message}`;
