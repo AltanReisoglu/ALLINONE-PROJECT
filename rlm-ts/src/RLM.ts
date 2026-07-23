@@ -18,8 +18,35 @@ export class RLM {
         this.repl = null;
     }
 
-    private async _llmQuery(prompt: string): Promise<string> {
-        return await this.subLlm.chat([{ role: "user", content: prompt }]);
+    private async _llmQuery(prompt: string, role: string = "general"): Promise<string> {
+        const systemPrompts: Record<string, string> = {
+            general: "You are a helpful AI sub-agent.",
+            coder: "You are an expert software developer and code analyst. Write clean, working code.",
+            security: "You are a cybersecurity auditor focusing on vulnerabilities and bugs.",
+            summarizer: "You are a concise summarizer. Extract only essential facts and bullet points.",
+            analyst: "You are a logic and data analyst. Focus on pattern extraction and strict reasoning."
+        };
+
+        const systemContent = systemPrompts[role] || systemPrompts.general;
+        const response = await this.subLlm.chat([
+            { role: "system", content: systemContent },
+            { role: "user", content: prompt }
+        ]);
+
+        // Automatic Blackboard Log: Record sub-agent actions
+        if (this.repl && this.repl.blackboard) {
+            if (!Array.isArray(this.repl.blackboard.history)) {
+                this.repl.blackboard.history = [];
+            }
+            this.repl.blackboard.history.push({
+                timestamp: new Date().toISOString(),
+                role,
+                prompt,
+                response
+            });
+        }
+
+        return response;
     }
 
     private _findCodeBlocks(text: string): string[] {

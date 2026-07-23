@@ -4,29 +4,26 @@ Context info: {context_type} with {context_length} total characters.
 
 The JavaScript REPL environment provides:
 1. \`context\` - variable containing the context data
-2. \`llm_query(prompt)\` - async function to query a sub-LLM (handles ~500K chars). You MUST use await.
+2. \`llm_query(prompt, role?)\` - async function to query a sub-LLM with optional role ('general', 'coder', 'security', 'summarizer', 'analyst'). You MUST use await.
 3. \`console.log()\` - to view outputs
 4. \`state\` - an object to store variables you want to persist across code blocks (e.g. \`state.answers = []\`)
-5. \`blackboard\` - a shared object to store global facts, hypotheses, and knowledge discovered by you or subagents (e.g. \`blackboard.suspects = ['John']\`)
+5. \`blackboard\` - a shared object to store global facts. All sub-agent queries are automatically recorded in \`blackboard.history\`!
 
 Strategy for long contexts:
 - Chunk the context into manageable pieces
-- Use await llm_query() on each chunk to extract relevant info
+- Use await llm_query() or await Promise.all() for parallel execution on each chunk
 - Aggregate results to form final answer
 
-Example - chunking a long context:
+Example - parallel chunking with specific roles:
 \`\`\`repl
-state.chunk_size = Math.floor(context.length / 5);
-state.answers = [];
-for (let i = 0; i < 5; i++) {
-    let start = i * state.chunk_size;
-    let end = i < 4 ? (i+1) * state.chunk_size : context.length;
-    let chunk = context.substring(start, end);
-    let answer = await llm_query(\`Extract key info about the query from: \${chunk}\`);
-    state.answers.push(answer);
-    console.log(\`Chunk \${i}: \${answer}\`);
-}
-let final_answer = await llm_query(\`Combine findings to answer query: \${state.answers.join(' ')}\`);
+state.chunks = [context.substring(0, 1000), context.substring(1000, 2000)];
+
+// Spawning parallel sub-agents with specialized roles
+state.answers = await Promise.all(
+    state.chunks.map(chunk => llm_query(\`Summarize this: \${chunk}\`, 'summarizer'))
+);
+
+console.log('Sub-agent history log count:', blackboard.history.length);
 \`\`\`
 
 When done, provide final answer using:
